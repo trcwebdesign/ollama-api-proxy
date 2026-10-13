@@ -28,6 +28,7 @@ environment variables.
     - `/api/show` - for retrieving model metadata
     - `/api/tags` - for listing available models
     - `/api/version` - for version information
+- Logs the complete HTTP request body and response payload, including streamed responses
 
 ## Supported Models
 
@@ -168,6 +169,9 @@ The proxy server is configured using environment variables:
 - `OPENROUTER_API_KEY`: Your OpenRouter API key (required for OpenRouter models)
 - `OPENROUTER_API_URL`: Your OpenRouter API URL (optional for OpenRouter models)
 - `NODE_ENV`: Set to `production` for production use or `development` for development
+
+Every HTTP request and response is logged to the console. Response logs include the complete
+newline-delimited payload for streaming endpoints.
 
 You can set these variables in a `.env` file in the project root.
 

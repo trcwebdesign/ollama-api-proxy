@@ -636,13 +636,68 @@ const routes = {
     },
 };
 
+const captureHttpPayload = (chunks, chunk, encoding) => {
+  if (chunk !== undefined && chunk !== null) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk, encoding) : Buffer.from(chunk));
+  }
+};
+
+const logHttpRequest = request => {
+  const chunks = [];
+
+  request.on('data', chunk => captureHttpPayload(chunks, chunk));
+  request.on('end', () => {
+    console.info('[HTTP request]', {
+      method: request.method,
+      url: request.url,
+      body: Buffer.concat(chunks).toString('utf8'),
+    });
+  });
+};
+
+const logHttpResponse = (request, response) => {
+  const chunks = [];
+  const write = response.write.bind(response);
+  const end = response.end.bind(response);
+
+  response.write = (chunk, encoding, callback) => {
+    if (typeof chunk === 'function') {
+      return write(chunk);
+    }
+    if (typeof encoding === 'function') {
+      callback = encoding;
+      encoding = undefined;
+    }
+    captureHttpPayload(chunks, chunk, encoding);
+    return write(chunk, encoding, callback);
+  };
+  response.end = (chunk, encoding, callback) => {
+    if (typeof chunk === 'function') {
+      return end(chunk);
+    }
+    if (typeof encoding === 'function') {
+      callback = encoding;
+      encoding = undefined;
+    }
+    captureHttpPayload(chunks, chunk, encoding);
+    return end(chunk, encoding, callback);
+  };
+  response.on('finish', () => {
+    console.info('[HTTP response]', {
+      method: request.method,
+      url: request.url,
+      status: response.statusCode,
+      body: Buffer.concat(chunks).toString('utf8'),
+    });
+  });
+};
+
 // HTTP Server
 const ollamaProxyServer = http.createServer(async (request, response) => {
     const routeKey = `${request.method} ${request.url.split('?')[0]}`;
 
-
-    console.info(routeKey);
-
+  logHttpRequest(request);
+  logHttpResponse(request, response);
 
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
